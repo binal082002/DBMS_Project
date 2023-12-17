@@ -1,0 +1,200 @@
+set search_path to HostelDBMS;
+
+--stored procedure to print fees details of particular student_ID
+create or replace function stu_fs(id decimal(9,0)) RETURNS SETOF fees as $BODY$
+Declare
+ s fees%rowtype;
+
+BEGIN
+ FOR s IN SELECT * FROM fees
+ 
+ LOOP
+   IF s.student_ID = id THEN
+   RETURN NEXT s;
+   END IF;
+ END LOOP;
+ 
+ RETURN;
+END $BODY$ LANGUAGE 'plpgsql';
+
+SELECT amount, month_year, status_fs FROM stu_fs(202001008);
+
+--stored procedure to update he address of an employee
+create or replace function upd_emp_add(address varchar(20), id decimal(9,0)) returns bool as $BODY$
+declare
+  query varchar(1000);
+  rows_affected integer;
+BEGIN
+  query = 'UPDATE employee SET address_emp ='|| QUOTE_LITERAL(address) || 'where emp_ID =' || id;
+  execute query;
+  GET DIAGNOSTICS rows_affected := ROW_COUNT;
+  RAISE NOTICE 'Rows Found : total_rows: %', rows_affected;
+  return true;
+
+  EXCEPTION
+  WHEN undefined_table THEN
+  raise exception 'Table Name is invalid';
+  return false;
+end $BODY$ LANGUAGE 'plpgsql';
+
+select upd_emp_add('Amritnagar junagadh' ,101002001)
+
+--view for department cleaning-D1
+create OR replace view C1 as
+select name_emp, gender_emp, address_emp, year_of_joining from 
+mess_cleaning as mc join employee as e on mc.description = e.department where mc.description = 'cleaning-D1';
+
+--view for department cleaning-D2
+create view C2 as
+select name_emp, gender_emp, address_emp, year_of_joining from 
+mess_cleaning as mc join employee as e on mc.description = e.department where mc.description = 'cleaning-D2';
+
+--view for department cleaning-D3
+create view C3 as
+select name_emp, gender_emp, address_emp, year_of_joining from 
+mess_cleaning as mc join employee as e on mc.description = e.department where mc.description = 'cleaning-D3';
+
+--view for department cleaning-D4
+create view C4 as
+select name_emp, gender_emp, address_emp, year_of_joining from 
+mess_cleaning as mc join employee as e on mc.description = e.department where mc.description = 'cleaning-D4';
+
+--view for department cleaning-D5
+create view C5 as
+select name_emp, gender_emp, address_emp, year_of_joining from 
+mess_cleaning as mc join employee as e on mc.description = e.department where mc.description = 'cleaning-D5';
+
+--view for department Mess-D1
+create view M1 as
+select name_emp, gender_emp, address_emp, year_of_joining from 
+mess_cleaning as mc join employee as e on mc.description = e.department where mc.description = 'Mess-D1';
+
+--view for department Mess-D1
+create view M2 as
+select name_emp, gender_emp, address_emp, year_of_joining from 
+mess_cleaning as mc join employee as e on mc.description = e.department where mc.description = 'Mess-D2'
+
+
+--trigger to update the total number of employee attribute on insertion and deletion of an employee
+create or replace function total_emp() returns trigger as $BODY$
+begin
+ if(tg_op = 'INSERT') then
+    update hostel set tot_emlpoyee = tot_emlpoyee + 1 where new.Building_no_emp = Building_no;
+	update mess_cleaning set tot_emlpoyee = tot_emlpoyee + 1 where new.department = description;
+	return new;
+	
+ elseif(tg_op = 'DELETE') then
+    update hostel set tot_emlpoyee = tot_emlpoyee - 1 where old.Building_no_emp = Building_no;	
+	update mess_cleaning set tot_emlpoyee = tot_emlpoyee - 1 where old.department = description;
+	return old;
+	
+ end if;
+ return null;
+	
+end $BODY$ language plpgsql;
+
+create trigger total_emp_trigger after delete or insert on employee
+for each row execute procedure total_emp();
+
+select * from hostel;
+select * from mess_cleaning;
+
+--trigger to update the total number of student attribute and room status on insertion and deletion of a student
+create or replace function total_stu() returns trigger as $BODY$
+declare
+ count integer = 0;
+ r student%ROWTYPE;
+ capc integer ;
+begin
+ if(tg_op = 'INSERT') then
+    update hostel set tot_student = tot_student + 1 where new.building_no = Building_no;
+	
+	for r in select * from student
+	loop
+	 if r.room_ID = new.room_ID then 
+	  count = count + 1;
+	 end if;
+	end loop;
+	
+	select room.capacity into capc from room where room.Room_ID = new.room_ID;
+	if(count = capc) then
+	  update room set status_room = 'occupied' where room.Room_ID = new.room_ID;
+	  
+	elseif(count < capc) then
+	  update room set status_room = 'half-occupied' where room.Room_ID = new.room_ID;
+	  
+	end if;  
+	  
+	  return new;
+	
+ elseif(tg_op = 'DELETE') then
+    update hostel set tot_student = tot_student - 1 where old.building_no = Building_no;	
+	
+	for r in select * from student
+	loop
+	 if r.room_ID = old.room_ID then 
+	  count = count + 1;
+	 end if;
+	end loop;
+	
+	select room.capacity into capc from room where room.Room_ID = old.room_ID;
+	if(count = 0) then
+	  update room set status_room = 'vacant' where room.Room_ID = old.room_ID;
+	  
+	elseif(count < capc) then
+	  update room set status_room = 'half-occupied' where room.Room_ID = old.room_ID;
+	  
+	end if;  
+	return old;
+	
+ end if;
+ return null;
+	
+end $BODY$ language plpgsql;
+
+create trigger total_stu_trigger after delete or insert on student
+for each row execute procedure total_stu();
+
+--stored procedure using cursor to retrieve contact and residence detiails of the student of drama club
+create or replace function findStudentDrama() returns integer as $BODY$
+DECLARE
+c CURSOR IS select s.first_name as fname, r2.address_stu as address, r2.contact_stu as contact, r2.club_name as club from student as s natural join
+( select * from student_address as sa natural join
+ ( select * from student_contact as sc natural join student_club as c) as r1 ) as r2 where r2.club_name = 'drama' ;
+ 
+ fname student.first_name%type;
+ address student_address.address_stu%type;
+ contact student_contact.contact_stu%type;
+ club student_club.club_name%type;
+
+BEGIN
+ open c;
+  LOOP
+    FETCH c INTO fname, address, contact, club;
+    EXIT WHEN NOT FOUND;
+    raise notice '%   %   %', fname, address, contact;
+  END LOOP;
+ CLOSE c;
+RETURN 1;
+END $BODY$ LANGUAGE plpgsql;
+
+select findStudentDrama();
+
+--stored procedure to chec whether given two id, id1 and id2 student are form same batch or not
+create or replace function is_same_batch( id1 decimal(9,0), id2 decimal(9,0) ) returns bool as $BODY$
+declare
+  b1 student.batch%type;
+  b2 student.batch%type;
+
+begin
+  select batch into b1 from student where student_ID = id1;
+  select batch into b2 from student where student_ID = id2;
+
+    if(b1 = b2) then
+	  return true;  
+	else
+	   return false;
+    end if;
+end $BODY$ language plpgsql;
+
+select is_same_batch(202001002, 202001001);

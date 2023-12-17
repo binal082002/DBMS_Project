@@ -1,0 +1,137 @@
+drop schema HostelDBMS cascade;
+create schema HostelDBMS;
+set search_path to HostelDBMS;
+
+create table hostel(
+               		Building_no smallint primary key,
+					warden_name varchar(20) not null,
+					tot_student integer,
+					tot_emlpoyee integer,
+					tot_rooms integer
+);
+
+create table room(
+					Room_ID decimal(4,0) primary key,
+					status_room varchar(15) not null,
+					type varchar(50) not null,
+					rent decimal(5,0) not null,
+					capacity smallint not null,
+               		Building_no smallint not null	
+);
+
+create table student(
+					student_ID decimal(9,0) primary key,
+					last_name varchar(10) not null,
+					first_name varchar(10),
+					middle_name varchar(10) not null,
+					gender_stu char(1) check(gender_stu in ('M','F','O')) not null,
+					batch smallint not null,
+					date_of_birth date not null,
+					building_no smallint,
+	                room_ID decimal(4,0) not null,
+					foreign key(room_ID) references room(Room_ID) on delete cascade on update cascade
+);
+
+create table fees(
+					Amount decimal(10,0) not null,
+					month_year date not null,
+					status_fs varchar(10) not null,
+					student_ID decimal(9,0),
+					primary key(month_year, student_ID),
+					foreign key(student_ID) references student(student_ID) on delete cascade on update cascade
+);
+
+create table internet(
+					IP_address varchar(20) primary key,
+					Building_no_int smallint,
+					password varchar(10) not null,
+					foreign key(Building_no_int) references hostel(Building_no) on delete cascade
+);
+
+create table club(
+					club_name varchar(10) primary key,
+					capacity smallint
+);
+
+create table student_address(
+					student_ID decimal(9,0),
+					address_stu varchar(30),
+					primary key(student_ID, address_stu),
+					foreign key(student_ID) references student(student_ID) on delete cascade on update cascade
+);
+
+create table student_contact(
+					student_ID decimal(9,0),
+					contact_stu decimal(10,0),
+					primary key(student_ID, contact_stu),
+					foreign key(student_ID) references student(student_ID) on delete cascade on update cascade
+);
+
+create table student_email(
+					student_ID decimal(9,0),
+					email_stu varchar(30),
+					primary key(student_ID, email_stu),
+					foreign key(student_ID) references student(student_ID) on delete cascade on update cascade
+);
+
+create table student_club(
+					student_ID decimal(9,0),
+					club_name varchar(10),
+					primary key(student_ID,club_name),
+					foreign key(student_ID) references
+					student(student_ID) on delete cascade on update cascade,
+					foreign key(club_name) references club(club_name) on delete set null on update cascade
+);
+
+create table mess_cleaning(
+					description varchar(20) primary key,
+					Building_no smallint,
+					tot_emlpoyee smallint,
+					foreign key(Building_no) references hostel(Building_no) on delete cascade
+);
+
+create table canteen(
+					canteen_no smallint,
+					Building_no smallint,
+					day varchar(10),
+					item varchar(15),
+					prize smallint,
+	                primary key(canteen_no,day),
+					foreign key(Building_no) references hostel(Building_no) on delete set null on update cascade
+);
+
+create table employee(
+					emp_ID decimal(9,0) primary key,
+					name_emp varchar(20) not null,
+					department varchar(20) not null,
+					Building_no_emp smallint not null,
+					salary decimal(10,0) not null,
+					gender_emp char(1) check(gender_emp in ('M','F','O')) not null,
+					address_emp varchar(40) not null,
+	                year_of_joining decimal(4,0),
+					foreign key(Building_no_emp) references hostel(Building_no) on delete cascade,
+					foreign key(department) references mess_cleaning(description) on delete cascade
+);
+
+create table emp_contact(
+					emp_ID decimal(9,0),
+					contact_emp decimal(10,0),
+					primary key(emp_ID, contact_emp),
+					foreign key(emp_ID) references employee(emp_ID) on delete cascade on update cascade
+);
+
+create table visitors(
+					visitor_ID decimal(10,0) primary key,
+					visitor_name varchar(20) not null
+);
+
+create table student_visitors(
+					visitor_ID decimal(10,0),
+					student_ID decimal(9,0),
+					Date_time TIMESTAMP,
+					relation varchar(10),
+					primary key(visitor_ID,student_ID, Date_time),
+					foreign key(visitor_ID) references visitors(visitor_ID) on delete cascade on update cascade,
+	 			    foreign key(student_ID) references student(student_ID) on delete cascade on update cascade
+
+);

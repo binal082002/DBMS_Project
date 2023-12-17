@@ -1,0 +1,103 @@
+set search_path to HostelDBMS;
+
+--1)Retrieve the average annual expenses incurred behind individual mess and cleaning staff for each building. 
+select Building_no_emp, department, round(sum(salary),3) as total_expense from employee group by 
+Building_no_emp, department order by Building_no_emp ;
+
+--2)Give total number of students of each batch who are left to pay the fees. 
+select s.batch, count(distinct stu_fees.student_ID) as total_student from student as s join
+(select  s.student_ID, s.batch from student as s join fees as f 
+on s.student_ID = f.student_ID where f.status_fs='unpaid') as stu_fees 
+on s.student_ID = stu_fees.student_ID group by s.batch;
+
+--3)List down details of the students who are left to pay the fees of last month-year.
+select s.student_ID, s.first_name, s.last_name,s.batch, f.month_year from student as s join 
+fees as f on s.student_ID=f.student_ID where month_year = TO_DATE('11/5/2020','MM/DD/YYYY') AND f.status_fs='unpaid';
+
+--4)Give details of month-year for student having ID 20001001 in which he/she has paid the fees late.(
+select s.student_ID, s.first_name, s.last_name,s.batch, f.month_year from student as s join 
+fees as f on s.student_ID=f.student_ID where (extract(day from month_year))>5 and s.student_ID = 202001001;
+
+--5)Give details of month-year for student having ID 202001002 for which his/her fees are yet left to pay.
+select s.student_ID, s.first_name, s.last_name,s.batch, f.month_year, f.status_fs from student as s join 
+fees as f on s.student_ID=f.student_ID where s.student_ID = 202001002 and f.status_fs = 'unpaid';
+
+--6)Show the details of students living in room(ID= 201). 
+select s.student_ID, r.room_ID, s.first_name, s.last_name,s.batch from student as s join 
+room as r on s.room_ID=r.Room_ID where r.Room_ID = 201 ;
+
+--7)Count total vacant rooms of each building with capacity more than 3 and with type non-AC.
+select r.Building_no, count(room_join.Room_ID) as total_vacant_rooms from room as r join
+(select * from room as r where r.capacity>3 and r.type='non AC' and r.status_room = 'vacant') as room_join
+on r.Room_ID = room_join.Room_ID group by r.Building_no order by r.Building_no;
+
+--8)List down names of all students who haven’t joined any club.
+select s.student_ID, s.first_name, s.last_name,s.batch from student as s left outer join 
+student_club on s.student_ID = student_club.student_ID where student_club.student_ID is null;
+
+--9)Retrieve total number of employees having salary more than the average salary of the employees working 
+--in the same department in which he/she is working. 
+select e.department, count(e.emp_ID) from employee as e join 
+(select e.department, avg(e.salary) as dept_avg_salary from employee as e group by department) as emp_avg
+on e.department = emp_avg.department where e.salary>emp_avg.dept_avg_salary group by e.department;
+
+--10)Name of visitors who came to visit  student having ID 202001001 in Fabruary(03) 2019.
+select v.visitor_name, vs.student_ID, vs.Date_time, vs.relation from visitors as v join
+student_visitors as vs on v.visitor_ID = vs. visitor_ID and (extract(month from Date_time)) = 3 and 
+(extract(year from Date_time)) = 2019 and vs.student_ID = 202001001;
+
+--11)Retrieve the data of oldest employee(oldest according to joining ear) of each department. 
+select e.emp_ID, e.name_emp, e.year_of_joining, r1.department from employee as e join
+(select e.department, min(e.year_of_joining) as joining_year from employee as e group by department) as r1
+on e.department = r1.department and e.year_of_joining = joining_year;
+
+--12)Details of the food available in canteen under prize 100 on Monday and Friday.
+select * from canteen where prize <= 100 and (day = 'monday' or day = 'friday');
+
+--13)Find building number, room_id, and fee status of each month of year 2020  of student having ID as 202001008.
+select s.room_ID, s.Building_no, f.status_fs,f.month_year from student as s join fees as f on s.student_ID = f.student_ID where 
+extract(year from f.month_year)= 2020 and s.student_ID = 202001008;
+
+--14)List down vacant rooms in building number 05 with their ID, capacity, rent and type (AC). 
+select room_ID,rent,capacity from room where status_room = 'vacant' and building_no = 05 and type = 'AC';
+
+--15)List down names of all students with age greater than 20, who are the part of “dance” club
+select s.student_ID, s.first_name, s.batch from student as s join student_club as sc 
+on s.student_ID = sc.student_ID
+where sc.club_name = 'dance' and age(s.date_of_birth)> interval '20 years';
+
+--16)Find the details of students who have joined all the clubs .
+select s.student_ID, s.first_name,s.batch from student as s join 
+(
+    select sc.student_ID from student_club as sc
+	except 
+	select r1.student_ID from 
+    (   select sc.student_ID, c.club_name from student_club as sc
+        cross join club as c
+            
+		except 
+
+        select sc.student_ID, sc.club_name from student_club as sc
+    ) as r1
+) as r2
+on r2.student_ID = s.student_ID;
+
+--17)Retrieve the data of student who have joined only dance club.
+select s.student_ID, s.first_name,s.batch from student as s join 
+( select s.student_ID from student as s join student_club as sc 
+    on s.student_ID = sc.student_ID and sc.club_name = 'dance'
+  except 
+  select student_ID from student_club where club_name = 'drama' or club_name = 'music' or club_name = 'cricket'
+) as r1
+on s.student_ID = r1.student_ID;
+
+--18)Retrieve the data of student who have joined some club.
+select s.student_ID, s.first_name,s.batch from student as s 
+where s.student_ID in (select student_ID from student_club);
+
+--19)Find out half occupied rooms if any.
+select * from room where status_room = 'half-occupied';
+
+--20)List down the password of all routers putted in each building. 
+select building_no_int, password from internet;
+
