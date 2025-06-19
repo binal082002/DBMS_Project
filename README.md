@@ -52,8 +52,8 @@ Plus update and retrieval functions for:
 
 ## Technologies Used
 
-- **Database:** MySQL / Oracle SQL (assumed from context)
-- **Design:** ER diagrams and normalized schemas (not shown here)
+- **Database:** MySQL / Oracle SQL
+- **Design:** ER diagrams and normalized schemas
 - **Language:** SQL (DDL, DML, queries, procedures/functions)
 
 ---
